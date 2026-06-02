@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; media-src 'self' blob:;" />
+    <title>turtle-coach · overlay</title>
+    <link rel="stylesheet" href="./overlay.css" />
+  </head>
+  <body>
+    <div id="popover" class="hidden" aria-hidden="true">
+      <!-- 그린스크린 비디오 — DOM에는 있지만 화면엔 안 보임 (CSS display:none) -->
+      <video id="src" src="./assets/turtle.mp4" muted loop playsinline autoplay></video>
+      <!-- 셰이더가 키잉한 결과를 그리는 캔버스 (실제 보이는 것) -->
+      <canvas id="keyed"></canvas>
+    </div>
+
+    <div id="hud" class="hidden">
+      <span id="hud-text">turtle-coach</span>
+    </div>
+
+    <script src="./overlay.js"></script>
+  </body>
+</html>

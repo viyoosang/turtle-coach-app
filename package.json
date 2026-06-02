@@ -1,0 +1,15 @@
+{
+  "name": "turtle-coach",
+  "version": "1.0.0",
+  "description": "거북목 자세를 감지해서 화면에 거북이를 띄우는 시스템 트레이 앱",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "make": "electron-packager . turtle-coach --overwrite --platform=win32 --arch=x64 --out=out --icon=app-icon.png --ignore=\"^/out$\" --ignore=\"^/dist$\" --ignore=\"^/build-icons.js$\" --ignore=\"^/scripts$\"",
+    "dist": "npm run make && powershell -ExecutionPolicy Bypass -File scripts/post-build.ps1"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-packager": "^17.1.2"
+  }
+}
