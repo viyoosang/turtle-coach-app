@@ -7,7 +7,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "start": "electron .",
+    "start": "node scripts/start.js",
     "make": "electron-packager . turtle-coach --overwrite --platform=win32 --arch=x64 --out=out --icon=app-icon.ico --ignore=\"^/out$\" --ignore=\"^/dist$\" --ignore=\"^/build-icons.js$\" --ignore=\"^/scripts$\" --ignore=\"^/00_실행하기.cmd$\" --ignore=\"^/00_먼저_실행하기$\"",
     "dist": "npm run make && powershell -ExecutionPolicy Bypass -File scripts/post-build.ps1"
   },
