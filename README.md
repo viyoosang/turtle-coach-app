@@ -9,25 +9,141 @@
 
 ---
 
-## 🚀 실행
+## 🚀 워크샵에서 실행하기
 
-### 빌드된 앱으로 실행 (가장 흔한 경우)
+이 워크샵의 기본 흐름은 **GitHub 저장소 주소를 Claude Code에게 주고, Claude Code가 저장소를 내려받아 `CLAUDE.md`를 읽은 뒤 설치부터 실행까지 대신 진행**하는 것입니다.
+Node.js를 미리 몰라도 됩니다. 없거나 너무 오래된 버전이면 Claude가 확인하고 설치 안내부터 진행합니다.
+Git을 처음 써도 괜찮습니다. 없으면 Claude가 확인하고 설치 안내부터 진행합니다.
 
-탐색기에서 더블클릭:
+저장소 주소는 워크샵 전에 확정됩니다. 현재 예상 주소는 아래 형식입니다.
+
+```text
+https://github.com/viyoosang/turtle-coach-app
 ```
-dist\거북이코치\거북이코치.exe
+
+강사가 최종 주소를 알려주면, 그 주소를 그대로 Claude Code에게 전달하세요.
+
+### 폴더에서 제일 먼저 볼 파일
+
+탐색기에서 폴더를 열었을 때는 **`00_먼저_실행하기`** 폴더를 먼저 보면 됩니다.
+그 안의 **`실행하기.cmd`**를 누르면 됩니다. 파일 목록에서 **`00_실행하기.cmd`**가 보이면 그것을 눌러도 됩니다.
+
+- 빌드된 앱이 있으면 `dist\거북이코치\거북이코치.exe`를 바로 실행합니다.
+- GitHub에서 막 받은 상태처럼 아직 실행 파일이 없으면, Claude Code에게 말할 문장을 안내합니다.
+
+Claude Code에게 이렇게 말하세요:
+
+```text
+아래 GitHub 저장소를 받아서 실행까지 해줘.
+https://github.com/viyoosang/turtle-coach-app
+
+CLAUDE.md를 읽고 진행해줘.
+Git이나 Node.js가 없거나 오래된 버전이면 설치 안내부터 진행해줘.
 ```
 
-### 첫 실행 시
+Claude가 하는 일:
+
+1. `git --version`으로 Git 설치 여부 확인
+2. Git이 없으면 Windows에서 설치 안내
+3. GitHub 저장소를 `git clone`으로 내려받기
+4. `turtle-coach-app` 폴더로 이동
+5. `node -v`, `npm -v`로 Node.js/npm 설치 여부 확인
+6. Node.js가 없거나 `v22.12.0` 미만이면 Windows에서 Node.js LTS 설치 안내
+7. `npm install`로 필요한 부품 설치
+8. `npm start`로 앱 실행
+
+설치와 첫 실행에는 인터넷이 필요합니다.
+`npm install` 때 Electron을 받고, 앱 첫 실행 때 MediaPipe Pose 모델을 CDN에서 한 번 내려받습니다.
+
+GitHub에서 clone한 저장소는 이미 Git 저장소입니다. 워크샵 중에는 `git init`을 다시 하지 않아도 됩니다.
+
+### Git이 처음이라면
+
+Git은 GitHub 저장소를 받고, 내가 바꾼 내용을 기록하는 도구입니다.
+Claude Code가 아래를 확인하고, 없으면 설치 안내를 도와줍니다.
+
+```powershell
+git --version
+```
+
+Git이 없으면 Windows PowerShell에서 아래 명령으로 설치할 수 있습니다.
+
+```powershell
+winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+```
+
+회사 보안 정책 등으로 `winget`이 막히면 https://git-scm.com 에서 Windows 설치본을 받아 설치합니다.
+
+설치 후에는 새 터미널을 열고 다시 확인합니다.
+
+```powershell
+git --version
+```
+
+커밋 실습을 할 때는 이름과 이메일도 설정합니다.
+이 정보는 로그인 정보가 아니라 **커밋 작성자 표시용 정보**입니다.
+동료와 협업할 때 변경 이력에 "누가 수정했는지" 보여주는 이름/이메일이라고 생각하면 됩니다.
+
+```powershell
+git config --global user.name "홍길동"
+git config --global user.email "gildong.hong@visang.com"
+```
+
+잘 모르겠으면 본인 이름과 회사 메일을 넣으면 됩니다.
+
+### 직접 명령으로 실행해야 할 때
+
+Claude Code가 막히거나 강사가 수동으로 도와줄 때는 PowerShell에서 아래 순서로 실행합니다.
+이미 GitHub에서 받은 폴더가 열려 있다면 `git clone`은 다시 하지 말고 그 폴더에서 시작하세요.
+아래 URL은 예정 주소입니다. 워크샵에서 강사가 최종 주소를 알려주면 그 주소를 사용하세요.
+
+```powershell
+git --version
+git clone https://github.com/viyoosang/turtle-coach-app
+cd turtle-coach-app
+node -v
+npm -v
+npm install
+npm start
+```
+
+`node -v` 또는 `npm -v`가 실패하거나 Node.js가 `v22.12.0` 미만이면 Node.js LTS를 먼저 설치합니다.
+
+```powershell
+node -v
+npm -v
+```
+
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-package-agreements --accept-source-agreements
+```
+
+설치 후에는 새 터미널을 열고 다시 `node -v`, `npm -v`를 확인합니다.
+회사 보안 정책 등으로 `winget`이 막히면 https://nodejs.org 에서 LTS 설치본을 내려받아 설치합니다.
+
+### 빌드된 앱 또는 zip을 받은 경우
+
+워크샵 기본 흐름은 GitHub clone입니다.
+`dist\거북이코치.zip` 또는 `dist\거북이코치\거북이코치.exe`는 강사가 예비용으로 따로 줄 때만 사용합니다.
+GitHub에서 clone한 저장소에는 보통 `dist/`가 없습니다.
+
+zip을 받았다면 먼저 압축을 풀고, 풀린 `거북이코치` 폴더 안에서 아래 중 하나를 실행합니다.
+
+```text
+00_먼저_실행하기\실행하기.cmd
+00_실행하기.cmd
+거북이코치.exe
+```
+
+첫 실행 시:
 
 1. Windows Defender **"PC 보호"** 화면 → **추가 정보** → **실행**
-2. 트레이(작업표시줄 우하단)에 **주황 거북이 아이콘** 등장
-   - 안 보이면 ^ 아이콘 눌러 숨겨진 아이콘 펼치기
+2. 트레이(작업표시줄 우하단)에 **거북이 아이콘** 등장
+   - 안 보이면 ^ 아이콘을 눌러 숨겨진 아이콘 펼치기
    - 항상 보이게 하려면 아이콘을 작업표시줄로 드래그
-3. 화면 우하단에 **카메라 미리보기 PIP** 등장 (셀카 영상)
-4. 첫 실행만 Windows에서 카메라 권한 요청 → **허용**
-
-> 첫 실행만 인터넷 필요 (MediaPipe Pose 모델 ~5MB CDN 다운로드 → 이후 캐시됨)
+3. 화면 우하단에 **카메라 미리보기 PIP** 등장
+4. Windows 카메라 권한 요청이 뜨면 **허용**
+5. 첫 실행에는 MediaPipe Pose 모델을 내려받느라 잠깐 기다릴 수 있음
 
 ---
 
@@ -78,29 +194,82 @@ dist\거북이코치\거북이코치.exe
 
 ---
 
-## 🛠 직접 빌드하기 (개발자용)
+## 🛠 수정하고 빌드하기
 
-### 처음 한 번
-
-```powershell
-cd turtle-coach-app
-npm install
-node build-icons.js   # tray-icon.png, app-icon.png 생성 (의존성 없이 순수 Node로 PNG 생성)
-```
-
-### 실행 / 빌드
+코드를 바꾼 뒤에는 개발 실행으로 바로 확인합니다.
 
 ```powershell
-npm start              # 코드 수정 후 바로 실행 (개발)
-npm run make           # out/turtle-coach-win32-x64/ 빌드 (raw)
-npm run dist           # dist/거북이코치/거북이코치.exe + dist/거북이코치.zip (배포용)
+npm start
 ```
 
-`npm run dist`는 빌드 결과를 한국어 폴더명으로 정리하고 zip까지 생성합니다. 동료에게 줄 때 zip 그대로 슬랙 드래그하면 끝.
+워크샵에서 추천하는 첫 변형 과제:
+
+- 알림 문구를 더 친절하게 바꾸기
+- 거북이 크기와 위치를 덜 방해되게 조정하기
+- HUD 경고 색과 성공 색 바꾸기
+- 거북목 감지 민감도를 조금 더 둔감하거나 예민하게 조정하기
+
+동료에게 줄 실행 파일과 zip을 만들 때는 Windows에서 아래 명령을 사용합니다.
+
+```powershell
+npm run dist
+```
+
+결과물:
+
+- `dist/거북이코치/거북이코치.exe`
+- `dist/거북이코치.zip`
+
+`npm run make`는 내부 raw 빌드용이고, 워크샵에서는 보통 `npm run dist`만 쓰면 됩니다.
 
 ---
 
 ## 🐛 트러블슈팅
+
+### `node` 또는 `npm`을 찾을 수 없어요
+Node.js가 아직 설치되지 않았거나, 설치 후 새 터미널을 열지 않은 상태입니다.
+이 앱의 현재 Electron 버전은 Node.js `v22.12.0` 이상이 필요합니다.
+
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-package-agreements --accept-source-agreements
+```
+
+설치가 끝나면 PowerShell 또는 Claude Code 터미널을 새로 열고 확인합니다.
+
+```powershell
+node -v
+npm -v
+```
+
+`winget`이 막히면 https://nodejs.org 에서 LTS 설치본을 받아 설치합니다.
+
+### Git 설치 또는 커밋 설정이 막혀요
+Git이 아직 설치되지 않았거나, 설치 후 새 터미널을 열지 않은 상태일 수 있습니다.
+
+```powershell
+winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+```
+
+`winget`이 막히면 https://git-scm.com 에서 Windows 설치본을 받아 설치합니다.
+
+설치가 끝나면 PowerShell 또는 Claude Code 터미널을 새로 열고 확인합니다.
+
+```powershell
+git --version
+```
+
+커밋할 때 이름/이메일을 물어보면 아래처럼 설정합니다.
+
+```powershell
+git config --global user.name "홍길동"
+git config --global user.email "gildong.hong@visang.com"
+```
+
+이 이름과 이메일은 동료가 Git 기록에서 작성자를 알아보는 데 쓰입니다.
+
+### `npm install`이 오래 걸리거나 실패해요
+Electron을 내려받는 단계라 인터넷 연결과 회사망 정책의 영향을 받습니다.
+에러 메시지를 그대로 확인하고, 사내망에서 `github.com`, `npmjs.com`, Electron 다운로드 주소가 막히지 않았는지 강사에게 알려주세요.
 
 ### "사람이 안 보여요" / "어깨가 안 보여요"
 - 카메라에서 50~80cm 정도 떨어져 앉기
@@ -125,13 +294,13 @@ EXIT_THRESHOLD: 0.02,
 `ENTER_SUSTAIN_MS`, `EXIT_SUSTAIN_MS`를 올리세요 (500 → 1000).
 
 ### 크로마키 가장자리에 초록 잔재
-[src/overlay/overlay.js:10-14](src/overlay/overlay.js#L10-L14)의 `TUNING`:
+[src/overlay/overlay.js](src/overlay/overlay.js)의 `TUNING`:
 - 초록 안 지워짐: `threshold: 0.10 → 0.05`
 - 거북이 본체 파먹힘: `threshold: 0.10 → 0.15`
 - 톱니 자글거림: `softness: 0.18 → 0.30`
 
 ### 거북이가 세로/가로로 늘어남
-원본 비율은 [src/overlay/overlay.js:131-136](src/overlay/overlay.js#L131-L136)에서 비디오 메타데이터 읽어서 자동 적용됩니다. 만약 다른 비디오로 바꿨는데 안 맞으면 비디오 코덱 호환성 의심 (mp4 H.264 권장).
+원본 비율은 [src/overlay/overlay.js](src/overlay/overlay.js)의 `loadedmetadata` 처리에서 비디오 메타데이터를 읽어 자동 적용됩니다. 만약 다른 비디오로 바꿨는데 안 맞으면 비디오 코덱 호환성 의심 (mp4 H.264 권장).
 
 ### 카메라가 안 잡혀요
 - Windows 설정 → 개인정보 보호 및 보안 → 카메라
@@ -144,7 +313,7 @@ EXIT_THRESHOLD: 0.02,
 - 동료에게 줄 때는 `dist/거북이코치.zip` 통째로
 
 ### 트레이 아이콘이 종료 후에도 남아있어요
-이미 수정됨 ([main.js:206-226](main.js#L206-L226) `quitApp()`). 그래도 남으면 작업관리자에서 `거북이코치.exe` 또는 `turtle-coach.exe` 프로세스 종료.
+이미 수정됨 ([main.js](main.js)의 `quitApp()`). 그래도 남으면 작업관리자에서 `거북이코치.exe` 또는 `turtle-coach.exe` 프로세스 종료.
 
 ---
 
@@ -153,10 +322,14 @@ EXIT_THRESHOLD: 0.02,
 ```
 turtle-coach-app/
 ├── README.md                ← 지금 이 파일
+├── 00_먼저_실행하기/
+│   └── 실행하기.cmd          ← 폴더 목록 맨 위쪽에서 찾기 쉬운 실행/안내 런처
+├── 00_실행하기.cmd          ← 먼저 눌러볼 수 있는 실행/안내 런처
 ├── package.json             scripts: start / make / dist
 ├── main.js                  Electron 메인 (트레이 + 윈도우 + IPC)
-├── build-icons.js           트레이 아이콘 PNG 생성 (의존성 X)
-├── tray-icon.png, app-icon.png   build-icons.js로 생성됨
+├── build-icons.js           아이콘 파일 확인용 helper
+├── tray-icon.png, tray-icon@2x.png
+├── app-icon.png, app-icon.ico    같은 거북이 이미지 기반 아이콘
 ├── scripts/
 │   └── post-build.ps1       npm run dist 의 정리 단계
 ├── src/
@@ -173,10 +346,13 @@ turtle-coach-app/
 │           └── turtle.mp4   거북이 그린스크린 비디오
 └── dist/                    npm run dist 빌드 결과 (.gitignore)
     ├── 거북이코치/
+    │   ├── 00_먼저_실행하기/
+    │   │   └── 실행하기.cmd
+    │   ├── 00_실행하기.cmd
     │   ├── 거북이코치.exe
     │   ├── 사용법.md
     │   └── (런타임 파일들)
-    └── 거북이코치.zip       동료 공유용 (~106MB)
+    └── 거북이코치.zip       동료 공유용 (용량은 Electron 버전에 따라 달라짐)
 ```
 
 ---
