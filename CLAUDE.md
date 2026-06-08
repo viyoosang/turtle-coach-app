@@ -11,7 +11,7 @@
 
 워크샵의 기본 흐름은 GitHub clone이다. 참가자가 GitHub URL을 함께 주면 그 URL을 우선 사용한다. 저장소 주소는 워크샵 전에 확정되며, 현재 예상 주소는 `https://github.com/viyoosang/turtle-coach-app` 형식이다. 확정 전에는 임의로 GitHub에 올리거나 remote를 바꾸지 않는다.
 
-탐색기에서 뭘 눌러야 하는지 묻는다면, 루트의 **`00_먼저_실행하기\실행하기.cmd`** 또는 **`00_실행하기.cmd`**를 먼저 안내한다. 빌드된 앱이 있으면 바로 실행하고, 없으면 Claude Code에게 요청할 문장을 보여주는 런처다. 단, GitHub에서 막 clone한 상태에는 `dist/`가 없을 수 있으므로 아래 설치·실행 절차도 그대로 진행할 준비를 한다.
+탐색기에서 뭘 눌러야 하는지 묻는다면, 루트의 **`00_실행하기.cmd`**를 먼저 안내한다. 빌드된 앱이 있으면 바로 실행하고, 없으면 Claude Code에게 요청할 문장을 보여주는 런처다. 단, GitHub에서 막 clone한 상태에는 `dist/`가 없을 수 있으므로 아래 설치·실행 절차도 그대로 진행할 준비를 한다.
 
 1. **Git 설치와 사용자 정보 확인**
    - GitHub에서 저장소를 처음 받는 상황이면 먼저 Git이 설치되어 있는지 확인한다.
@@ -113,7 +113,7 @@
 ## 프로젝트 구조 (수정할 때 어디를 볼지)
 
 - **main.js** — Electron 메인 프로세스. 트레이 + `detectorWin`(보이지 않는 카메라 창) + `overlayWin`(전체화면 투명 거북이 창)을 띄운다.
-- **00_먼저_실행하기/실행하기.cmd · 00_실행하기.cmd** — 비전공자 참가자가 폴더에서 가장 먼저 볼 실행/안내 런처. 빌드된 앱이 있으면 실행하고, 없으면 Claude Code 안내 문구를 보여준다.
+- **00_실행하기.cmd** — 비전공자 참가자가 폴더에서 가장 먼저 볼 실행/안내 런처. 빌드된 앱이 있으면 실행하고, 없으면 Claude Code 안내 문구를 보여준다.
 - **src/detector/detector.js** — 카메라 + MediaPipe Pose 로 자세 감지. **거북목 판정 민감도**는 이 파일의 `CONFIG`(`ENTER_THRESHOLD` / `EXIT_THRESHOLD`).
 - **src/overlay/** — 화면에 뜨는 거북이.
   - `index.html` — `<video id="src" src="./assets/turtle.mp4">` 로 거북이 영상을 깐다. HUD 문구는 `#hud-text`.
