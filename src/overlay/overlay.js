@@ -1,5 +1,5 @@
-// 그린스크린 turtle.mp4 → WebGL2 크로마키 → 투명 오버레이 합성.
-// turtleman 레포의 셰이더 알고리즘을 그대로 차용:
+// 그린스크린 turtle.mp4 -> WebGL2 크로마키 -> 투명 오버레이 합성.
+// turtleman 레포의 셰이더 알고리즘을 차용:
 //   green excess = G - max(R, B)
 //   alpha = 1 - clamp((green_excess - threshold) / softness, 0, 1)
 //   spill 제거: G를 max(R,B)로 끌어내림 (가장자리 초록 잔재 제거)
@@ -18,11 +18,24 @@ const hudEl = document.getElementById('hud');
 const hudTextEl = document.getElementById('hud-text');
 
 const gl = canvas.getContext('webgl2', { premultipliedAlpha: true, alpha: true, antialias: false });
-if (!gl) {
-  console.error('[overlay] webgl2 unavailable');
+
+let rafId = null;
+let renderFrame = null;
+let stopVideoTimer = null;
+
+function useVideoFallback() {
+  console.error('[overlay] webgl2 unavailable; showing raw video fallback');
+  canvas.style.display = 'none';
+  video.style.display = 'block';
+  video.style.width = '100%';
+  video.style.height = '100%';
+  video.style.objectFit = 'contain';
 }
 
-const VERT = `#version 300 es
+if (!gl) {
+  useVideoFallback();
+} else {
+  const VERT = `#version 300 es
 in vec2 a_pos;
 in vec2 a_uv;
 out vec2 v_uv;
@@ -31,7 +44,7 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-const FRAG = `#version 300 es
+  const FRAG = `#version 300 es
 precision highp float;
 in vec2 v_uv;
 out vec4 outColor;
@@ -48,101 +61,128 @@ void main() {
   float alpha = 1.0 - keyAmount;
   float clampedG = min(rgb.g, maxRB);
   float g = mix(rgb.g, clampedG, u_spill * keyAmount);
-  // premultiplied: 투명 윈도우에 깨끗이 합성됨
   outColor = vec4(rgb.r * alpha, g * alpha, rgb.b * alpha, alpha);
 }`;
 
-function compile(type, src) {
-  const sh = gl.createShader(type);
-  gl.shaderSource(sh, src);
-  gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-    console.error('[overlay] shader compile error', gl.getShaderInfoLog(sh));
-  }
-  return sh;
-}
-
-const program = gl.createProgram();
-gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
-gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
-gl.linkProgram(program);
-if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-  console.error('[overlay] program link error', gl.getProgramInfoLog(program));
-}
-gl.useProgram(program);
-
-// 풀스크린 쿼드. v는 뒤집어서 텍스처를 위아래 올바르게.
-const quad = new Float32Array([
-  -1, -1,  0, 1,
-   1, -1,  1, 1,
-  -1,  1,  0, 0,
-   1,  1,  1, 0
-]);
-const vbo = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
-
-const aPos = gl.getAttribLocation(program, 'a_pos');
-const aUv  = gl.getAttribLocation(program, 'a_uv');
-gl.enableVertexAttribArray(aPos);
-gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 16, 0);
-gl.enableVertexAttribArray(aUv);
-gl.vertexAttribPointer(aUv,  2, gl.FLOAT, false, 16, 8);
-
-const uThreshold = gl.getUniformLocation(program, 'u_threshold');
-const uSoftness  = gl.getUniformLocation(program, 'u_softness');
-const uSpill     = gl.getUniformLocation(program, 'u_spill');
-const uTex       = gl.getUniformLocation(program, 'u_tex');
-
-const tex = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, tex);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-gl.clearColor(0, 0, 0, 0);
-
-let rafId = null;
-function frame() {
-  rafId = requestAnimationFrame(frame);
-  if (video.readyState < 2 || video.videoWidth === 0) return;
-
-  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+  function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      console.error('[overlay] shader compile error', gl.getShaderInfoLog(sh));
+    }
+    return sh;
   }
 
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('[overlay] program link error', gl.getProgramInfoLog(program));
+  }
+  gl.useProgram(program);
+
+  // 풀스크린 쿼드. v는 뒤집어서 텍스처를 위아래 올바르게.
+  const quad = new Float32Array([
+    -1, -1,  0, 1,
+     1, -1,  1, 1,
+    -1,  1,  0, 0,
+     1,  1,  1, 0
+  ]);
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+
+  const aPos = gl.getAttribLocation(program, 'a_pos');
+  const aUv  = gl.getAttribLocation(program, 'a_uv');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(aUv);
+  gl.vertexAttribPointer(aUv,  2, gl.FLOAT, false, 16, 8);
+
+  const uThreshold = gl.getUniformLocation(program, 'u_threshold');
+  const uSoftness  = gl.getUniformLocation(program, 'u_softness');
+  const uSpill     = gl.getUniformLocation(program, 'u_spill');
+  const uTex       = gl.getUniformLocation(program, 'u_tex');
+
+  const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  gl.uniform1i(uTex, 0);
-  gl.uniform1f(uThreshold, TUNING.threshold);
-  gl.uniform1f(uSoftness,  TUNING.softness);
-  gl.uniform1f(uSpill,     TUNING.spill);
+  gl.clearColor(0, 0, 0, 0);
 
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  renderFrame = function frame() {
+    rafId = requestAnimationFrame(frame);
+    if (video.readyState < 2 || video.videoWidth === 0) return;
+
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+
+    gl.uniform1i(uTex, 0);
+    gl.uniform1f(uThreshold, TUNING.threshold);
+    gl.uniform1f(uSoftness,  TUNING.softness);
+    gl.uniform1f(uSpill,     TUNING.spill);
+
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  };
+}
+
+function startRenderLoop() {
+  if (!renderFrame || rafId !== null) return;
+  rafId = requestAnimationFrame(renderFrame);
+}
+
+function stopRenderLoop() {
+  if (rafId === null) return;
+  cancelAnimationFrame(rafId);
+  rafId = null;
+}
+
+function startTurtleVideo() {
+  if (stopVideoTimer) {
+    clearTimeout(stopVideoTimer);
+    stopVideoTimer = null;
+  }
+  video.play().catch((err) => console.warn('[overlay] video play failed', err));
+  startRenderLoop();
+}
+
+function stopTurtleVideoAfterExit() {
+  if (stopVideoTimer) clearTimeout(stopVideoTimer);
+  stopVideoTimer = setTimeout(() => {
+    stopRenderLoop();
+    video.pause();
+    stopVideoTimer = null;
+  }, 1900);
 }
 
 video.addEventListener('loadedmetadata', () => {
-  // 비디오 원본 비율 그대로 popover 박스에 적용 — 어떤 영상으로 바꿔도 자동 대응
+  // 비디오 원본 비율 그대로 popover 박스에 적용. 어떤 영상으로 바꿔도 자동 대응.
   if (video.videoWidth && video.videoHeight) {
     popover.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
   }
 });
 
 video.addEventListener('loadeddata', () => {
-  video.play().catch((err) => console.warn('[overlay] video play failed', err));
-  if (rafId === null) frame();
+  if (!popover.classList.contains('visible')) video.pause();
 });
 
 video.addEventListener('error', () => {
   console.error('[overlay] video failed to load');
 });
 
-// ── HUD + posture wiring ────────────────────────────────────────────
+// HUD + posture wiring
 
 let hudTimer = null;
 function showHud(text, durationMs = 2400) {
@@ -158,12 +198,14 @@ function showHud(text, durationMs = 2400) {
 
 window.turtle.onPosture(({ bad }) => {
   if (bad) {
+    startTurtleVideo();
     popover.classList.remove('hidden');
     popover.classList.add('visible');
     showHud('🐢 거북목입니다 — 자세 펴주세요!', 4000);
   } else {
     popover.classList.remove('visible');
     popover.classList.add('hidden');
+    stopTurtleVideoAfterExit();
     showHud('✓ 좋아요, 바른 자세!', 1800);
   }
 });
