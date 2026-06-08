@@ -33,10 +33,21 @@ if (Test-Path $readme) {
   Copy-Item -Path $readme -Destination (Join-Path $folder '사용법.md')
 }
 
-# 4) zip 만들기 (동료 공유용)
+# 4) 실행 런처 함께 두기
+$launcher = Join-Path $root '00_실행하기.cmd'
+if (Test-Path $launcher) {
+  Copy-Item -Path $launcher -Destination (Join-Path $folder '00_실행하기.cmd')
+}
+
+$launcherFolder = Join-Path $root '00_먼저_실행하기'
+if (Test-Path $launcherFolder) {
+  Copy-Item -Path $launcherFolder -Destination (Join-Path $folder '00_먼저_실행하기') -Recurse -Force
+}
+
+# 5) zip 만들기 (동료 공유용)
 Compress-Archive -Path $folder -DestinationPath $zip -Force
 
-# 5) 빌드 임시 폴더 정리
+# 6) 빌드 임시 폴더 정리
 if (Test-Path (Join-Path $root 'out')) {
   Remove-Item -Recurse -Force (Join-Path $root 'out')
 }
