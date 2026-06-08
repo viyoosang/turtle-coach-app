@@ -15,15 +15,16 @@ let detectorWin = null;
 let overlayWin = null;
 let isQuitting = false;
 let baselineReadyHandled = false;
+let lastTrayStatus = null;
 
 const PIP = { width: 320, height: 240, margin: 24 };
 const OFFSCREEN = { x: -3000, y: -3000 };
 
 function pipCoords() {
-  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
+  const { x: sx, y: sy, width: sw, height: sh } = screen.getPrimaryDisplay().workArea;
   return {
-    x: sw - PIP.width - PIP.margin,
-    y: sh - PIP.height - PIP.margin
+    x: sx + sw - PIP.width - PIP.margin,
+    y: sy + sh - PIP.height - PIP.margin
   };
 }
 
@@ -86,11 +87,11 @@ function isPipVisible() {
 
 function createOverlayWindow() {
   const display = screen.getPrimaryDisplay();
-  const { width, height } = display.workAreaSize;
+  const { x, y, width, height } = display.workArea;
 
   overlayWin = new BrowserWindow({
-    x: 0,
-    y: 0,
+    x,
+    y,
     width,
     height,
     transparent: true,
@@ -159,8 +160,15 @@ function createTray() {
     tray.setContextMenu(menu);
   };
 
-  rebuildMenu();
   tray.rebuildMenu = rebuildMenu;
+  updateTrayStatus('자세 감지 중...', true);
+}
+
+function updateTrayStatus(statusLabel, force = false) {
+  if (!tray || !tray.rebuildMenu) return;
+  if (!force && statusLabel === lastTrayStatus) return;
+  lastTrayStatus = statusLabel;
+  tray.rebuildMenu(statusLabel);
 }
 
 // detector → main → overlay
@@ -175,22 +183,31 @@ ipcMain.on('detector-status', (_event, payload) => {
   }
   if (tray && tray.rebuildMenu && payload && payload.message) {
     const status = payload.ready ? '자세 감지 중 ✓' : '기준 자세 맞추는 중...';
-    tray.rebuildMenu(status);
+    updateTrayStatus(status);
   }
   // 기준 자세 처음 잡힌 순간: 3초 후 PIP 자동 hide
   if (payload && payload.ready && !baselineReadyHandled) {
     baselineReadyHandled = true;
     setTimeout(() => {
       if (isPipVisible() && process.env.TURTLE_DEBUG !== '1') hidePipPreview();
-      if (tray && tray.rebuildMenu) tray.rebuildMenu('자세 감지 중 ✓');
+      updateTrayStatus('자세 감지 중 ✓', true);
     }, 3000);
   }
 });
 
 app.whenReady().then(() => {
-  // 카메라 권한 자동 허용 (사용자가 동의한 앱이라는 전제)
-  session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => {
-    if (perm === 'media') return cb(true);
+  // detector 창의 카메라 요청만 허용한다. 다른 권한/다른 창 요청은 차단.
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => {
+    const isDetector =
+      detectorWin &&
+      !detectorWin.isDestroyed() &&
+      wc.id === detectorWin.webContents.id;
+    const mediaTypes = Array.isArray(details && details.mediaTypes) ? details.mediaTypes : [];
+    const wantsCameraOnly =
+      mediaTypes.length === 0 ||
+      (mediaTypes.includes('video') && !mediaTypes.includes('audio'));
+
+    if (perm === 'media' && isDetector && wantsCameraOnly) return cb(true);
     cb(false);
   });
 
