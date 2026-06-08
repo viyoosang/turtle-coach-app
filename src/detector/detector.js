@@ -20,6 +20,7 @@ const CONFIG = {
   EXIT_THRESHOLD: 0.03,       // baseline 대비 이만큼 안으로 들어가야 해제
   ENTER_SUSTAIN_MS: 500,
   EXIT_SUSTAIN_MS: 400,
+  LOST_TRACKING_RESET_MS: 1200,
   MIN_VISIBILITY: 0.5
 };
 
@@ -32,6 +33,7 @@ let baseline = null;
 let postureBad = false;
 let badSince = null;
 let goodSince = null;
+let trackingLostSince = null;
 
 function setStatus(msg) {
   statusEl.textContent = msg;
@@ -59,18 +61,44 @@ function computeForwardness(landmarks) {
   return shZ - earZ;
 }
 
+function clearBadPosture(delta = 0) {
+  if (!postureBad) return;
+  postureBad = false;
+  badSince = null;
+  goodSince = null;
+  window.turtle.sendPosture({ bad: false, delta, baseline });
+}
+
+function noteTrackingLost(message) {
+  setStatus(message);
+  badSince = null;
+  goodSince = null;
+
+  if (baseline === null || !postureBad) return;
+
+  const now = performance.now();
+  if (trackingLostSince === null) {
+    trackingLostSince = now;
+    return;
+  }
+  if (now - trackingLostSince >= CONFIG.LOST_TRACKING_RESET_MS) {
+    clearBadPosture();
+  }
+}
+
 function onResults(results) {
   // 비디오 자체가 CSS로 거울처럼 보임 — 캔버스에 다시 그릴 필요 없음
   if (!results.poseLandmarks) {
-    setStatus('사람이 안 보여요');
+    noteTrackingLost('사람이 안 보여요');
     return;
   }
 
   const forwardness = computeForwardness(results.poseLandmarks);
   if (forwardness === null) {
-    setStatus('어깨가 안 보여요 — 카메라에서 한 발짝 떨어져보세요');
+    noteTrackingLost('어깨가 안 보여요 — 카메라에서 한 발짝 떨어져보세요');
     return;
   }
+  trackingLostSince = null;
 
   if (baseline === null) {
     baselineSum += forwardness;
@@ -157,9 +185,13 @@ async function main() {
     if (processing) return;
     if (videoEl.readyState < 2) return;
     processing = true;
-    try { await pose.send({ image: videoEl }); }
-    catch (err) { /* MediaPipe 가끔 일시적 에러; 무시하고 계속 */ }
-    processing = false;
+    try {
+      await pose.send({ image: videoEl });
+    } catch (err) {
+      // MediaPipe 가끔 일시적 에러가 나므로 다음 폴링에서 회복하게 둔다.
+    } finally {
+      processing = false;
+    }
   }, CONFIG.POLL_INTERVAL_MS);
 }
 
